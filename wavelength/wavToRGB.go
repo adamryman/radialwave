@@ -1,5 +1,27 @@
 package wavelength
 
+// A color is stored internally using sRGB (standard RGB) values in the range 0-1
+type Color struct {
+	R, G, B float64
+}
+
+// Implement the Go color.Color interface.
+func (col Color) RGBA() (r, g, b, a uint32) {
+	r = uint32(col.R * 65535.0)
+	g = uint32(col.G * 65535.0)
+	b = uint32(col.B * 65535.0)
+	a = 0xFFFF
+	return
+}
+
+func WaveToRGB(i int) Color {
+	return Color{
+		R: ToRGB[i][0],
+		G: ToRGB[i][1],
+		B: ToRGB[i][2],
+	}
+}
+
 // ToRGB contains a RGB color for a range of wavelengths of visible light.
 // There are 266 values. This data was found a while ago and I did not save the
 // source. Wikipedia says that typically visible light has wavelengths between
