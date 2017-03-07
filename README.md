@@ -33,7 +33,7 @@ onto a circle from the start of the music to the end of the music.
 // - Find dominate frequency of group of chunks
 // - Pass dominate frequency info to both something to create a slice of the frequency data in
 //   original music AND something to create a sorted unique slice of frequencies,
-//   this could be done effectily with insertion sort
+//   this could be done effetely with insertion sort
 // - After all pieces have been collected:
 // - Create mapping from wavelength to color
 // - Render some somehow
