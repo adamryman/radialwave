@@ -15,6 +15,8 @@ func (col Color) RGBA() (r, g, b, a uint32) {
 }
 
 func WaveToRGB(i int) Color {
+	// To shift the colors
+	i = (i + 50) % 255
 	return Color{
 		R: ToRGB[i][0],
 		G: ToRGB[i][1],
