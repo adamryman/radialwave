@@ -12,7 +12,7 @@ import (
 )
 
 // Draw a circle on a 1000x1000 pixel background
-func Circle(freq []int) (image.Image, error) {
+func Circle(freq []int, radius int, fill float64) (image.Image, error) {
 	min, max := minMax(freq)
 	top := max - min
 
@@ -25,7 +25,7 @@ func Circle(freq []int) (image.Image, error) {
 		c := wavelength.WaveToRGB(wlength)
 		cs = append(cs, c)
 	}
-	img := circle.ColorCircle(3000, cs...)
+	img := circle.ColorCircle(radius, fill, cs...)
 
 	return img, nil
 }
