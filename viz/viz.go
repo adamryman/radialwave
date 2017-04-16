@@ -5,7 +5,7 @@ import (
 	"image/color"
 	//"math"
 
-	"github.com/adamryman/circle"
+	"github.com/adamryman/visualizer-experiment/circle"
 	"github.com/adamryman/visualizer-experiment/wavelength"
 
 	. "github.com/y0ssar1an/q"
