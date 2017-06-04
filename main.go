@@ -18,43 +18,50 @@ var (
 )
 
 func main() {
+	os.Exit(run())
+}
+
+func run() int {
 	flag.Parse()
+
 	if len(flag.Args()) < 1 {
 		fmt.Println("Need a second argument")
+		return 1
 	}
 	in, err := os.Open(flag.Arg(0))
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return 1
 	}
 	w, err := wav.New(in)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return 1
 	}
 	fmt.Println(w.SampleRate)
 	fmt.Println(w.BitsPerSample)
 	freq, err := parse.Wav(w)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return 1
 	}
 	f, err := os.Create(*file)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return 1
 	}
 
 	circle, err := viz.Circle(freq, *r, *fill)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return 1
 	}
 	err = png.Encode(f, circle)
 	f.Close()
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		return 1
 	}
 
+	return 0
 }
