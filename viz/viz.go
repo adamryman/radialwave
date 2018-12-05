@@ -5,8 +5,8 @@ import (
 	"image/color"
 	//"math"
 
-	"github.com/adamryman/visualizer-experiment/circle"
-	"github.com/adamryman/visualizer-experiment/wavelength"
+	"github.com/adamryman/radialwave/circle"
+	"github.com/adamryman/radialwave/wavelength"
 
 	. "github.com/y0ssar1an/q"
 )
