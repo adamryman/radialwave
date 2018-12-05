@@ -9,7 +9,7 @@ import (
 
 	. "github.com/y0ssar1an/q"
 
-	"github.com/adamryman/visualizer-experiment/wave"
+	"github.com/adamryman/radialwave/wave"
 )
 
 // TODO:

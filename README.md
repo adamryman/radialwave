@@ -1,4 +1,4 @@
-# visualizer-experiment
+# radialwave
 
 ![Harder Better Faster Stronger by Daft Punk](./screenshots/harder.png)
 
