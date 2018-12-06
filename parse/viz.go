@@ -1,7 +1,7 @@
 package parse
 
 import (
-	"fmt"
+	"io"
 	"log"
 	"math/cmplx"
 	"os"
@@ -9,6 +9,8 @@ import (
 	"github.com/mjibson/go-dsp/fft"
 	"github.com/mjibson/go-dsp/wav"
 	. "github.com/y0ssar1an/q"
+
+	"github.com/pkg/errors"
 )
 
 // harder.wav is 226 seconds long
@@ -16,22 +18,27 @@ import (
 
 var logger = log.New(os.Stderr, "Render", log.LstdFlags)
 
-func Wav(w *wav.Wav) ([]int, error) {
+// TODO
+//func WavIntoMaxAmplitudeFrequenciesByTime(w *wav.Wav, t time.Time) ([]int, error) {
+
+// Wav
+// TODO: Fix this not making sense if there is mono audio, or anything other than two channels
+func WavIntoMaxAmplitudeFrequencies(w *wav.Wav) ([]int, error) {
 	Q(int(w.BitsPerSample))
 	Q(w.Samples)
 	Q(int(w.SampleRate))
-	fmt.Println(w.NumChannels)
-	seconds := (float64(w.Samples) / float64(w.SampleRate))
-	_ = seconds
-	//for err == nil {
-	//samples, err = w.ReadSamples(int(w.SampleRate))
-	samples, err := w.ReadFloats(int(w.SampleRate) * int(w.NumChannels))
-	_ = err
-	l, r := SplitChannels(samples)
+
+	samplesPerSecond := int(w.SampleRate) * int(w.NumChannels)
 
 	var maxFrequencies []int
-
+	var err error
+	var samples []float32
 	for err == nil {
+		// Read one second of sound
+		samples, err = w.ReadFloats(samplesPerSecond)
+
+		// TODO: Update this to handle any number of channels, rather than hard coded to two. Woops. My bad
+		l, r := SplitChannels(samples)
 		fftOutL := fft.FFTReal(float32To64(l))
 		fftOutR := fft.FFTReal(float32To64(r))
 
@@ -42,12 +49,10 @@ func Wav(w *wav.Wav) ([]int, error) {
 		} else {
 			maxFrequencies = append(maxFrequencies, maxIndexR)
 		}
-
-		samples, err = w.ReadFloats(int(w.SampleRate) * int(w.NumChannels))
-		l, r = SplitChannels(samples)
 	}
-	Q(err)
-	Q(maxFrequencies)
+	if err != nil && err != io.EOF {
+		return nil, errors.Wrap(err, "error processing sample")
+	}
 
 	return maxFrequencies, nil
 }
