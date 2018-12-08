@@ -1,6 +1,6 @@
 # radialwave
 
-![Harder Better Faster Stronger by Daft Punk](./screenshots/harder.png)
+![Test](./screenshots/test.png)
 
 This project is converting a music visualizer I wrote in matlab and I hope to
 rewrite in go.
