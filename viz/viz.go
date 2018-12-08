@@ -38,10 +38,20 @@ func Circle(freq []int, radius int, fill float64) (image.Image, error) {
 	Q(top)
 	Q(max)
 	Q(min)
+	// If min is zero, we should shift everything up by 1. As 0 will map to zero and 1 will map to zero
+	// TODO: Figure out how to space numbers equaily
+
 	toplog := math.Log(float64(top))
+	if min == 0 {
+		toplog = math.Log(float64(top + 1))
+	}
 
 	var cs []color.Color
 	for _, f := range freq {
+		if min == 0 {
+			f = f + 1
+		}
+		Q(f)
 		dist := float64(0)
 		if f-min != 0 {
 			dist = math.Log(float64(f-min)) / toplog
@@ -50,6 +60,7 @@ func Circle(freq []int, radius int, fill float64) (image.Image, error) {
 		// 265 is a magic number
 		// the length - 1 of wavelength.ToRGB
 		wlength := int(dist * float64(265))
+		Q(wlength)
 		c := wavelength.WaveToRGB(wlength)
 		cs = append(cs, c)
 	}
@@ -73,7 +84,8 @@ func colorPicker() {
 
 	// Na this is all silly
 	// TODO: Sort frequencies
-	// TODO:
+	// TODO: Dedupe? Yeah
+	// TODO: map over one at a time and shift by one if needed to keep the colors different
 
 }
 

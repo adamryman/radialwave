@@ -33,7 +33,10 @@ func run() int {
 	defer func() { fmt.Println(errMessage) }()
 
 	if *simple != 0 {
-		freq := []int{200, 300, 200, 100}
+		freq := make([]int, *simple)
+		for i := 0; i < len(freq); i++ {
+			freq[i] = i
+		}
 		err := renderPNG(freq)
 		if err != nil {
 			errMessage = errors.Wrap(err, "error creating simple circle")
