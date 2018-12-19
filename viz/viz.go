@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"sort"
 
 	"github.com/adamryman/radialwave/circle"
 	"github.com/adamryman/radialwave/wavelength"
@@ -34,34 +35,14 @@ import (
 // Draw a circle on a 1000x1000 pixel background
 func Circle(freq []int, radius int, fill float64) (image.Image, error) {
 	min, max := minMax(freq)
-	top := max - min
-	Q(top)
-	Q(max)
-	Q(min)
-	// If min is zero, we should shift everything up by 1. As 0 will map to zero and 1 will map to zero
-	// TODO: Figure out how to space numbers equaily
-
-	toplog := math.Log(float64(top))
-	if min == 0 {
-		toplog = math.Log(float64(top + 1))
-	}
-
+	sortedFreq := make([]int, len(freq), len(freq))
+	copy(sortedFreq, freq)
+	mapper := spreaderSmallToLarge(sortedFreq, len(wavelength.ToRGB)-1, min, max)
 	var cs []color.Color
 	for _, f := range freq {
-		if min == 0 {
-			f = f + 1
-		}
-		Q(f)
-		dist := float64(0)
-		if f-min != 0 {
-			dist = math.Log(float64(f-min)) / toplog
-		}
-		Q(dist)
-		// 265 is a magic number
-		// the length - 1 of wavelength.ToRGB
-		wlength := int(dist * float64(265))
-		Q(wlength)
-		c := wavelength.WaveToRGB(wlength)
+		bucket := mapper[f]
+		//Q(bucket)
+		c := wavelength.WaveToRGB(bucket)
 		cs = append(cs, c)
 	}
 	//Q(cs)
@@ -70,23 +51,88 @@ func Circle(freq []int, radius int, fill float64) (image.Image, error) {
 	return img, nil
 }
 
-func colorPicker() {
-	// TODO: Given best case range of values from 0 to 255, spread evenly
-	// TODO: Given a range larger than 0 to 255, make sure each number only resolves once.
-	// i.e. range of 0 to 511 then both 0 and 1 would map to 0, we want to spread them out as much as possible, so if there was no 2 or 3, would would map 0 to 0 and 1 to 1.
-	// Probably create a mapping and then move if needed?
+func bucketorZero(in []int, buckets int, max int) map[int]int {
+	out := make(map[int]int)
+	floatMax := float64(max)
+	if floatMax == 0 {
+		return out
+	}
+	for _, v := range in {
+		out[v] = int(math.Floor((float64(v) / floatMax) * float64(buckets)))
+	}
+	return out
+}
 
-	//[][]int [[0,1]. [], [4], [6]] => [[0], [1], [4], [6]]
+func bucketor(in []int, buckets int, min, max int) map[int]int {
+	out := make(map[int]int)
+	bucketRange := float64(max - min)
+	if bucketRange == 0 {
+		return out
+	}
+	for _, v := range in {
+		out[v] = int(math.Floor((float64(v-min) / bucketRange) * float64(buckets)))
+	}
+	return out
+}
 
-	//[][]int [[0,1]. [2], [5]. []] => [[0], [1], [2], [5]]
+// spread values out for more unique colors
+func spreaderLargeToSmall(in []int, buckets int, min, max int) map[int]int {
+	out := make(map[int]int)
+	dedupOutput := make(map[int]bool)
+	bucketRange := float64(max - min)
+	Q(bucketRange)
+	if bucketRange == 0 {
+		return out
+	}
+	sort.Ints(in)
+	Q(len(in))
+	// range from top to bottom
+	for i := len(in) - 1; i > 0; i-- {
+		v := in[i]
+		Q(v)
+		// dedupe existing values
+		if _, ok := out[v]; ok {
+			Q("continue")
+			continue
+		}
+		// map
+		out[v] = int(math.Floor((float64(v-min) / bucketRange) * float64(buckets)))
+		// If we already seen the output, shift it down by 1
+		if dedupOutput[out[v]] && out[v] > 0 {
+			out[v] = out[v] - 1
+		}
+		dedupOutput[out[v]] = true
+	}
+	return out
+}
 
-	//[][]int [[0,1]. [2], [4,5]. [6]] => [[0,1], [2], [4,5], [6]]
-
-	// Na this is all silly
-	// TODO: Sort frequencies
-	// TODO: Dedupe? Yeah
-	// TODO: map over one at a time and shift by one if needed to keep the colors different
-
+// spread values out for more unique colors
+func spreaderSmallToLarge(in []int, buckets int, min, max int) map[int]int {
+	out := make(map[int]int)
+	dedupOutput := make(map[int]bool)
+	bucketRange := float64(max - min)
+	Q(bucketRange)
+	if bucketRange == 0 {
+		return out
+	}
+	sort.Ints(in)
+	Q(len(in))
+	// range from bottom to top
+	for _, v := range in {
+		// dedupe existing values
+		if _, ok := out[v]; ok {
+			Q("continue")
+			continue
+		}
+		// map
+		out[v] = int(math.Floor((float64(v-min) / bucketRange) * float64(buckets)))
+		// If we already seen the output, shift it down by 1
+		if dedupOutput[out[v]] && out[v] < buckets {
+			out[v] = out[v] + 1
+		}
+		dedupOutput[out[v]] = true
+	}
+	return out
 }
 
 func SpectrumCircle(radius int, fill float64) (image.Image, error) {
