@@ -51,7 +51,10 @@ func WavIntoMaxAmplitudeFrequencies(w *wav.Wav) ([]int, error) {
 		}
 	}
 	if err != nil && err != io.EOF {
-		return nil, errors.Wrap(err, "error processing sample")
+		// TODO: Why is an unexpected EOF sometimes happening
+		if err != io.ErrUnexpectedEOF {
+			return nil, errors.Wrap(err, "error processing sample")
+		}
 	}
 
 	return maxFrequencies, nil

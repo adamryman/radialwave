@@ -90,7 +90,7 @@ func handleInputWav(input string) error {
 	}
 	w, err := wav.New(in)
 	if err != nil {
-		return errors.Wrapf(err, "cannot parse %s as wav file", input)
+		return errors.Wrapf(err, "cannot open %s as wav file", input)
 	}
 	fmt.Println(w.SampleRate)
 	fmt.Println(w.BitsPerSample)
