@@ -51,6 +51,24 @@ func Circle(freq []int, radius int, fill float64) (image.Image, error) {
 	return img, nil
 }
 
+func Circles(freq []int, radius int, fill float64) ([]image.Image, error) {
+	min, max := minMax(freq)
+	sortedFreq := make([]int, len(freq), len(freq))
+	copy(sortedFreq, freq)
+	mapper := spreaderSmallToLarge(sortedFreq, len(wavelength.ToRGB)-1, min, max)
+	var cs []color.Color
+	for _, f := range freq {
+		bucket := mapper[f]
+		//Q(bucket)
+		c := wavelength.WaveToRGB(bucket)
+		cs = append(cs, c)
+	}
+	//Q(cs)
+	img := circle.ColorCircles(radius, fill, cs...)
+
+	return img, nil
+}
+
 func bucketorZero(in []int, buckets int, max int) map[int]int {
 	out := make(map[int]int)
 	floatMax := float64(max)
@@ -126,6 +144,10 @@ func spreaderSmallToLarge(in []int, buckets int, min, max int) map[int]int {
 		}
 		// map
 		out[v] = int(math.Floor((float64(v-min) / bucketRange) * float64(buckets)))
+
+		// TODO: How to invert colors
+		//out[v] = int(math.Floor((math.Abs((1 - (float64(v-min) / bucketRange))) * float64(buckets))))
+
 		// If we already seen the output, shift it down by 1
 		if dedupOutput[out[v]] && out[v] < buckets {
 			out[v] = out[v] + 1

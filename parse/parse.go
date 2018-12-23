@@ -3,6 +3,7 @@ package parse
 import (
 	"io"
 	"log"
+	"math"
 	"math/cmplx"
 	"os"
 
@@ -29,13 +30,23 @@ func WavIntoMaxAmplitudeFrequencies(w *wav.Wav) ([]int, error) {
 	Q(int(w.SampleRate))
 
 	samplesPerSecond := int(w.SampleRate) * int(w.NumChannels)
+	// bpm = bps * 60
+	// 124 = bps * 60
+	// 124 / 60 = bps
+	// 2.07 = bps
+	// samples per beat = samplesPerSecond / beats per second
+	// TODO: don't hardcode
+	var beatsPerMinute float64
+	beatsPerMinute = 124
+	beatsPerSecond := beatsPerMinute / float64(60)
+	samplesPerBeat := int(math.Floor(float64(samplesPerSecond) / beatsPerSecond))
 
 	var maxFrequencies []int
 	var err error
 	var samples []float32
 	for err == nil {
 		// Read one second of sound
-		samples, err = w.ReadFloats(samplesPerSecond)
+		samples, err = w.ReadFloats(samplesPerBeat)
 
 		// TODO: Update this to handle any number of channels, rather than hard coded to two. Woops. My bad
 		l, r := SplitChannels(samples)

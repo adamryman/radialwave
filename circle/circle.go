@@ -87,8 +87,9 @@ func (s *SectorCircle) At(x, y int) color.Color {
 
 type colorCircle struct {
 	Circle
-	Colors []color.Color
-	Fill   float64
+	Colors         []color.Color
+	Fill           float64
+	SegmentsFilled int
 }
 
 func (c *colorCircle) At(x, y int) color.Color {
@@ -101,6 +102,9 @@ func (c *colorCircle) At(x, y int) color.Color {
 		}
 		distance := theta / (2 * math.Pi)
 		colorIndex := distance * float64(len(c.Colors))
+		if int(colorIndex) >= c.SegmentsFilled {
+			return color.Alpha{255}
+		}
 		diff := colorIndex - math.Floor(colorIndex)
 
 		// 1 = filled, .5 = half filled. 0 = no fill
@@ -112,7 +116,7 @@ func (c *colorCircle) At(x, y int) color.Color {
 	return color.Alpha{255}
 }
 
-func ColorCircle(radius int, fill float64, colors ...color.Color) image.Image {
+func newColorCircle(radius int, fill float64, segments int, colors ...color.Color) *colorCircle {
 	if fill == 0 || fill > 1 {
 		fill = 1
 	}
@@ -126,7 +130,23 @@ func ColorCircle(radius int, fill float64, colors ...color.Color) image.Image {
 	for _, c := range colors {
 		cc.Colors = append(cc.Colors, c)
 	}
+	cc.SegmentsFilled = segments
 	return &cc
+}
+
+func ColorCircle(radius int, fill float64, colors ...color.Color) image.Image {
+	return newColorCircle(radius, fill, len(colors), colors...)
+}
+
+func ColorCircles(radius int, fill float64, colors ...color.Color) []image.Image {
+	var output []image.Image
+	for i, _ := range colors {
+		cc := newColorCircle(radius, fill, i, colors...)
+		output = append(output, cc)
+	}
+	output = append(output, ColorCircle(radius, fill, colors...))
+
+	return output
 }
 
 type Red struct{}
