@@ -24,21 +24,16 @@ var logger = log.New(os.Stderr, "Render", log.LstdFlags)
 
 // Wav
 // TODO: Fix this not making sense if there is mono audio, or anything other than two channels
-func WavIntoMaxAmplitudeFrequencies(w *wav.Wav) ([]int, error) {
+func WavIntoMaxAmplitudeFrequencies(w *wav.Wav, bpm float64) ([]int, error) {
 	Q(int(w.BitsPerSample))
 	Q(w.Samples)
 	Q(int(w.SampleRate))
 
 	samplesPerSecond := int(w.SampleRate) * int(w.NumChannels)
+	// bps = beats per second
 	// bpm = bps * 60
-	// 124 = bps * 60
-	// 124 / 60 = bps
-	// 2.07 = bps
-	// samples per beat = samplesPerSecond / beats per second
-	// TODO: don't hardcode
-	var beatsPerMinute float64
-	beatsPerMinute = 124
-	beatsPerSecond := beatsPerMinute / float64(60)
+	// samplesPerBeat = samplesPerSecond / bps
+	beatsPerSecond := bpm / float64(60)
 	samplesPerBeat := int(math.Floor(float64(samplesPerSecond) / beatsPerSecond))
 
 	var maxFrequencies []int

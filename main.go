@@ -21,7 +21,12 @@ var (
 	// TODO: Implement properly
 	simple = flag.Int("simple", 0, "produce simple circle with passed number of chords")
 
+	// TODO: update to call ffmpeg or something to create gifs / webm?
+	// TODO: possibly add flag to output frames for user to call ffmpeg
 	animate = flag.BoolP("animate", "a", false, "output pngs to be animated")
+
+	// TODO: Input validation
+	bpm = flag.Float64P("bpm", "b", 60, "bpm of input, one arc of the circle for every beat in the input.")
 
 	outFile = flag.StringP("outfile", "o", "output.png", "file output")
 )
@@ -82,6 +87,7 @@ func renderPNGs(freq []int) error {
 	}
 
 	for i, v := range circles {
+		// TODO: Configure output format?
 		f, err := os.Create(strconv.Itoa(i) + "_" + *outFile)
 		if err != nil {
 			return err
@@ -134,7 +140,7 @@ func handleInputWav(input string, renderFunc func([]int) error) error {
 	}
 	fmt.Println(w.SampleRate)
 	fmt.Println(w.BitsPerSample)
-	freq, err := parse.WavIntoMaxAmplitudeFrequencies(w)
+	freq, err := parse.WavIntoMaxAmplitudeFrequencies(w, *bpm)
 	if err != nil {
 		return errors.Wrapf(err, "cannot parse %s as wav file", input)
 	}
