@@ -2,14 +2,17 @@ package main
 
 import (
 	"fmt"
+	"image"
 	"image/png"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/adamryman/radialwave/parse"
 	"github.com/adamryman/radialwave/viz"
 	"github.com/mjibson/go-dsp/wav"
 	flag "github.com/spf13/pflag"
+	"sync"
 
 	"github.com/pkg/errors"
 )
@@ -23,13 +26,15 @@ var (
 
 	// TODO: update to call ffmpeg or something to create gifs / webm?
 	// TODO: possibly add flag to output frames for user to call ffmpeg
-	animate = flag.BoolP("animate", "a", false, "output pngs to be animated")
+	animate = flag.StringP("animate", "a", "", "output pngs to be animated, will put frames into directory passed into flag")
 
 	// TODO: Input validation
 	bpm = flag.Float64P("bpm", "b", 60, "bpm of input, one arc of the circle for every beat in the input.")
 
 	outFile = flag.StringP("outfile", "o", "output.png", "file output")
 )
+
+var inputFile string
 
 func main() {
 	os.Exit(run())
@@ -45,10 +50,10 @@ func run() int {
 	}()
 
 	var renderFunc func([]int) error
-	if *animate {
-		renderFunc = renderPNGs
-	} else {
+	if *animate == "" {
 		renderFunc = renderPNG
+	} else {
+		renderFunc = renderPNGs
 	}
 
 	if *simple != 0 {
@@ -69,9 +74,9 @@ func run() int {
 		errMessage = errors.New("need input file")
 		return 1
 	}
-	input := flag.Arg(0)
+	inputFile = flag.Arg(0)
 
-	err := handleInputWav(input, renderFunc)
+	err := handleInputWav(inputFile, renderFunc)
 	if err != nil {
 		errMessage = err
 		return 1
@@ -86,21 +91,35 @@ func renderPNGs(freq []int) error {
 		return err
 	}
 
-	for i, v := range circles {
-		// TODO: Configure output format?
-		f, err := os.Create(strconv.Itoa(i) + "_" + *outFile)
-		if err != nil {
-			return err
-		}
+	var wg sync.WaitGroup
 
-		//freq := []int{0, 100, 1000, 100000}
-
-		err = png.Encode(f, v)
-		f.Close()
-		if err != nil {
-			return err
-		}
+	err = os.Mkdir(*animate, 0777)
+	if err != nil {
+		return err
 	}
+	for i, c := range circles {
+		wg.Add(1)
+		go func(counter int, circle image.Image) {
+			defer wg.Done()
+			f, err := os.Create(filepath.Join(*animate, strconv.Itoa(counter)+".png"))
+			if err != nil {
+				fmt.Println(err)
+			}
+
+			//freq := []int{0, 100, 1000, 100000}
+
+			err = png.Encode(f, circle)
+			f.Close()
+			if err != nil {
+				fmt.Println(err)
+			}
+		}(i, c)
+	}
+
+	wg.Wait()
+
+	bps := *bpm / 60.0
+	fmt.Printf("ffmpeg -i %s -r %f -i ./%s/%%d.png -c:v libvpx -b:v 1M -crf 4 %s\n", inputFile, bps, *animate, *outFile)
 
 	return nil
 
