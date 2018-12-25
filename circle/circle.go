@@ -141,10 +141,9 @@ func ColorCircle(radius int, fill float64, colors ...color.Color) image.Image {
 func ColorCircles(radius int, fill float64, colors ...color.Color) []image.Image {
 	var output []image.Image
 	for i, _ := range colors {
-		cc := newColorCircle(radius, fill, i, colors...)
+		cc := newColorCircle(radius, fill, i+1, colors...)
 		output = append(output, cc)
 	}
-	output = append(output, ColorCircle(radius, fill, colors...))
 
 	return output
 }
