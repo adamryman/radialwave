@@ -5,8 +5,11 @@ import (
 	"image"
 	"image/png"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
+	"strings"
 
 	"github.com/adamryman/radialwave/parse"
 	"github.com/adamryman/radialwave/viz"
@@ -20,16 +23,14 @@ import (
 var (
 	radius = flag.IntP("radius", "r", 3000, "radius")
 	fill   = flag.Float64P("fill", "f", 1, "fill between sections")
+	// TODO: Input validation
+	bpm = flag.Float64P("bpm", "b", 60, "bpm of input, one arc of the circle for every beat in the input.")
 
 	// TODO: Implement properly
 	simple = flag.Int("simple", 0, "produce simple circle with passed number of chords")
 
-	// TODO: update to call ffmpeg or something to create gifs / webm?
-	// TODO: possibly add flag to output frames for user to call ffmpeg
 	animate = flag.StringP("animate", "a", "", "output pngs to be animated, will put frames into directory passed into flag")
-
-	// TODO: Input validation
-	bpm = flag.Float64P("bpm", "b", 60, "bpm of input, one arc of the circle for every beat in the input.")
+	ffmpeg  = flag.Bool("ffmpeg", false, "run ffmpeg for creating animation with music")
 
 	outFile = flag.StringP("outfile", "o", "output.png", "file output")
 )
@@ -45,7 +46,7 @@ func run() int {
 	var errMessage error
 	defer func() {
 		if errMessage != nil {
-			fmt.Println(errMessage)
+			fmt.Fprintln(os.Stderr, errMessage)
 		}
 	}()
 
@@ -93,33 +94,53 @@ func renderPNGs(freq []int) error {
 
 	var wg sync.WaitGroup
 
-	err = os.Mkdir(*animate, 0777)
+	err = os.MkdirAll(*animate, 0777)
 	if err != nil {
 		return err
 	}
-	for i, c := range circles {
-		wg.Add(1)
-		go func(counter int, circle image.Image) {
-			defer wg.Done()
-			f, err := os.Create(filepath.Join(*animate, strconv.Itoa(counter)+".png"))
-			if err != nil {
-				fmt.Println(err)
-			}
-
-			//freq := []int{0, 100, 1000, 100000}
-
-			err = png.Encode(f, circle)
-			f.Close()
-			if err != nil {
-				fmt.Println(err)
-			}
-		}(i, c)
+	type indexCircle struct {
+		Index  int
+		Circle image.Image
 	}
+	circleChan := make(chan indexCircle)
+	for i := 0; i < runtime.NumCPU(); i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for c := range circleChan {
+				f, err := os.Create(filepath.Join(*animate, strconv.Itoa(c.Index)+".png"))
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+				}
+
+				err = png.Encode(f, c.Circle)
+				f.Close()
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+				}
+			}
+		}()
+	}
+	for i, c := range circles {
+		circleChan <- indexCircle{i, c}
+	}
+	close(circleChan)
 
 	wg.Wait()
 
 	bps := *bpm / 60.0
 	fmt.Printf("ffmpeg -i %s -r %f -i ./%s/%%d.png -c:v libvpx -b:v 1M -crf 4 %s\n", inputFile, bps, *animate, *outFile)
+	if *ffmpeg {
+		ffmpegCmd := exec.Command("ffmpeg", strings.Split(fmt.Sprintf("-i %s -r %f -i ./%s/%%d.png -c:v libvpx -b:v 1M -crf 4 %s", inputFile, bps, *animate, *outFile), " ")...)
+		ffmpegCmd.Stdin = os.Stdin
+		ffmpegCmd.Stderr = os.Stderr
+		ffmpegCmd.Stdout = os.Stdout
+		err = ffmpegCmd.Run()
+		if err != nil {
+			return err
+		}
+
+	}
 
 	return nil
 
@@ -157,8 +178,6 @@ func handleInputWav(input string, renderFunc func([]int) error) error {
 	if err != nil {
 		return errors.Wrapf(err, "cannot open %s as wav file", input)
 	}
-	fmt.Println(w.SampleRate)
-	fmt.Println(w.BitsPerSample)
 	freq, err := parse.WavIntoMaxAmplitudeFrequencies(w, *bpm)
 	if err != nil {
 		return errors.Wrapf(err, "cannot parse %s as wav file", input)
