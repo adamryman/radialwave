@@ -129,8 +129,12 @@ func renderPNGs(freq []int) error {
 	wg.Wait()
 
 	bps := *bpm / 60.0
+	// TODO: ffmpeg -i harder.wav -r 2.053333 -i ./harder_highdef/%d.png -c:v libx264 -b:v 1M -f mp4 -preset fast -pix_fmt yuv420p -r 2.053333 -acodec aac harder_highdef.mp4
+	// TODO: make mp4
 	fmt.Printf("ffmpeg -i %s -r %f -i ./%s/%%d.png -c:v libvpx -b:v 1M -crf 4 %s\n", inputFile, bps, *animate, *outFile)
 	if *ffmpeg {
+		// TODO: ffmpeg -i harder.wav -r 2.053333 -i ./harder_highdef/%d.png -c:v libx264 -b:v 1M -f mp4 -preset fast -pix_fmt yuv420p -r 2.053333 -acodec aac harder_highdef.mp4
+		// TODO: make mp4
 		ffmpegCmd := exec.Command("ffmpeg", strings.Split(fmt.Sprintf("-i %s -r %f -i ./%s/%%d.png -c:v libvpx -b:v 1M -crf 4 %s", inputFile, bps, *animate, *outFile), " ")...)
 		ffmpegCmd.Stdin = os.Stdin
 		ffmpegCmd.Stderr = os.Stderr
